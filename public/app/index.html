@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Shotblockrr</title>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="babylon-stage.js"></script>
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body class="app-body">
+        <div class="app-container">
+            <div class="main-layout">
+                <!-------------------- Left Panel --------------------->
+                <!----------------------------------------------------->
+                <div class="left-panel">
+                    <!-- Ratio Selection -->
+                    <div class="setup-subsection">
+                        <h4 class="subsection-title">Shot ratio</h4>
+                        <div id="ratioSelection" class="scene-selection">
+                            <div
+                                class="ratio-option ratio-option-detailed"
+                                data-ratio="1280:720"
+                            >
+                                <div class="ratio-display-box">16:9</div>
+                            </div>
+                            <div
+                                class="ratio-option ratio-option-inactive"
+                                data-ratio="720:1280"
+                            >
+                                <div class="ratio-display-portrait">9:16</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Background Selection (moved from sidebar) -->
+                    <div class="setup-subsection">
+                        <h4 class="subsection-title">Reference</h4>
+                        <div id="sceneSelectionMain" class="scene-selection">
+                            <div
+                                class="scene-option selected"
+                                data-scene="lost-island"
+                            >
+                                <img
+                                    src="/scenes/lost-island.jpg"
+                                    alt="Lost Island Scene"
+                                    class="scene-image"
+                                />
+                                <div class="scene-label">Lost Island</div>
+                            </div>
+                            <div class="scene-option" data-scene="space">
+                                <img
+                                    src="/scenes/space.jpg"
+                                    alt="Space Scene"
+                                    class="scene-image"
+                                />
+                                <div class="scene-label">Space</div>
+                            </div>
+                            <div class="scene-option" data-scene="custom">
+                                <div class="scene-custom-upload">
+                                    <div class="upload-icon">📁</div>
+                                </div>
+                                <div class="scene-label">Custom</div>
+                            </div>
+                        </div>
+                        <input
+                            type="file"
+                            id="customBackgroundInput"
+                            accept="image/*"
+                            style="display: none"
+                            onchange="handleCustomBackgroundUpload(this)"
+                        />
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button
+                        id="generateBtnMain"
+                        class="generate-button"
+                        onclick="generateImage()"
+                    >
+                        Generate shot
+                    </button>
+
+                    <!-- Instructions Section -->
+                    <div class="generation-instructions">
+                        <div class="instruction-text">
+                            To block a shot, press (+) to add 3D characters,
+                            place them in the scene, and choose a reference
+                            above.
+                        </div>
+                    </div>
+
+                    <!-- Camera Settings -->
+                    <div class="setup-subsection" style="display: none">
+                        <h4 class="subsection-title">Camera</h4>
+                        <button id="autoRotateBtn" class="generate-button">
+                            Auto Rotate
+                        </button>
+                    </div>
+                </div>
+
+                <!-------------------- Canvas ------------------------->
+                <!----------------------------------------------------->
+                <div class="canvas-container canvas-and-controls">
+                    <canvas id="babylonCanvas"></canvas>
+
+                    <!-- Ratio overlay bars (hidden by default) -->
+                    <div
+                        id="leftRatioBar"
+                        class="ratio-overlay-bar ratio-overlay-left"
+                    ></div>
+                    <div
+                        id="rightRatioBar"
+                        class="ratio-overlay-bar ratio-overlay-right"
+                    ></div>
+
+                    <!-- Loading indicator -->
+                    <div id="loadingIndicator" class="loading-indicator">
+                        Loading...
+                    </div>
+
+                    <!-- Character Controls Overlay - Upper Left -->
+                    <div class="character-controls-overlay">
+                        <h4
+                            id="characterControlsTitle"
+                            class="character-controls-title"
+                        >
+                            Character controls
+                        </h4>
+
+                        <!-- Character Rotation -->
+                        <div class="controls-section">
+                            <label class="controls-label"
+                                >Character Rotation:</label
+                            >
+                            <div class="controls-buttons">
+                                <button
+                                    id="characterRotateLeft"
+                                    class="tooltip control-button"
+                                    data-tooltip="Rotate character left"
+                                >
+                                    <img
+                                        src="/img/body-left.jpg"
+                                        alt="Body Left"
+                                        class="button-icon"
+                                    />
+                                </button>
+                                <button
+                                    id="characterRotateRight"
+                                    class="tooltip control-button"
+                                    data-tooltip="Rotate character right"
+                                >
+                                    <img
+                                        src="/img/body-right.jpg"
+                                        alt="Body Right"
+                                        class="button-icon"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Animation Control -->
+                        <div
+                            id="animationControlSection"
+                            class="controls-section"
+                        >
+                            <label class="controls-label"
+                                >Animation Frame:</label
+                            >
+                            <div class="animation-control">
+                                <input
+                                    type="range"
+                                    id="animationSlider"
+                                    min="0"
+                                    max="100"
+                                    value="5"
+                                    step="1"
+                                    class="animation-slider"
+                                />
+                                <div class="animation-labels">
+                                    <span>Start</span>
+                                    <span>End</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Character Actions -->
+                        <div class="controls-section-last">
+                            <label class="controls-label"
+                                >Character Actions:</label
+                            >
+                            <div
+                                class="controls-buttons character-action-buttons"
+                            >
+                                <button
+                                    id="editHeightBtn"
+                                    class="tooltip control-button character-action-btn"
+                                    data-tooltip="Edit character height"
+                                    onclick="openEditCharacterModal(window.selectedCharacter)"
+                                >
+                                    📏 Height
+                                </button>
+                                <button
+                                    id="deleteCharacterBtn"
+                                    class="tooltip character-delete-btn control-button character-action-btn"
+                                    data-tooltip="Delete character"
+                                    onclick="deleteCharacter(window.selectedCharacter)"
+                                >
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Character Button Overlay - Top Right -->
+                    <div class="add-character-overlay">
+                        <button
+                            onclick="openAddCharacterModal()"
+                            class="add-character-btn-overlay"
+                            title="Add new character"
+                        >
+                            ➕
+                        </button>
+                    </div>
+
+                    <!-- Camera Controls Overlay - Bottom Right -->
+                    <div class="camera-controls-overlay">
+                        <h4 class="character-controls-title">Camera</h4>
+
+                        <!-- Movement Grid -->
+                        <div class="camera-movement-grid">
+                            <div></div>
+                            <button
+                                id="moveUp"
+                                class="tooltip camera-button"
+                                data-tooltip="Move camera up"
+                            >
+                                <img
+                                    src="/img/camera-up.jpg"
+                                    alt="Up"
+                                    class="button-icon"
+                                />
+                            </button>
+                            <div></div>
+
+                            <button
+                                id="moveLeft"
+                                class="tooltip camera-button"
+                                data-tooltip="Move camera left"
+                            >
+                                <img
+                                    src="/img/camera-left.jpg"
+                                    alt="Left"
+                                    class="button-icon"
+                                />
+                            </button>
+                            <button
+                                id="resetCamera"
+                                class="tooltip camera-button-reset"
+                                data-tooltip="Reset camera asset"
+                            >
+                                <img
+                                    src="/img/camera-reset.jpg"
+                                    alt="Reset"
+                                    class="button-icon"
+                                />
+                            </button>
+                            <button
+                                id="moveRight"
+                                class="tooltip camera-button"
+                                data-tooltip="Move camera right"
+                            >
+                                <img
+                                    src="/img/camera-right.jpg"
+                                    alt="Right"
+                                    class="button-icon"
+                                />
+                            </button>
+
+                            <div></div>
+                            <button
+                                id="moveDown"
+                                class="tooltip camera-button"
+                                data-tooltip="Move camera down"
+                            >
+                                <img
+                                    src="/img/camera-down.jpg"
+                                    alt="Down"
+                                    class="button-icon"
+                                />
+                            </button>
+                            <div></div>
+                        </div>
+
+                        <!-- Forward/Back buttons -->
+                        <div class="controls-buttons">
+                            <button
+                                id="moveForward"
+                                class="tooltip camera-button-small"
+                                data-tooltip="Move camera forward"
+                            >
+                                <img
+                                    src="/img/camera-forward.jpeg"
+                                    alt="Forward"
+                                    class="button-icon"
+                                />
+                            </button>
+                            <button
+                                id="moveBack"
+                                class="tooltip camera-button-small"
+                                data-tooltip="Move camera back"
+                            >
+                                <img
+                                    src="/img/camera-back.jpeg"
+                                    alt="Back"
+                                    class="button-icon"
+                                />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!------------ Image Generation Section --------------->
+            <!----------------------------------------------------->
+            <div class="images-generation">
+                <div class="image-generation-block" style="display: none">
+                    <!-- Refine Section -->
+                    <div class="loading-message">Generating shot</div>
+
+                    <div class="image-wrapper" style="display: none">
+                        <img class="generated-image" />
+
+                        <button class="download-button">Download</button>
+                    </div>
+                </div>
+
+                <!-- Hidden template for refine sections -->
+                <div class="refine-section" style="display: none">
+                    <h4 class="subsection-title">✨ Refine this shot</h4>
+                    <textarea
+                        class="prompt-textarea"
+                        placeholder="Describe how you want to refine this shot — ignore past conversations and include all necessary details."
+                        maxlength="200"
+                    ></textarea>
+                    <div class="character-count">
+                        <span>0/200</span>
+                    </div>
+
+                    <button class="generate-button" onclick="refineImage(this)">
+                        Refine shot
+                    </button>
+                </div>
+            </div>
+            <!-- Bottom Section with Reset and Attribution -->
+            <div class="bottom-section">
+                <div class="attribution-text">
+                    Shotblockr prototype - Christophe Bruchansky, 2025
+                </div>
+                <div class="reset-container">
+                    <button id="resetButton" class="app-button">
+                        Reset & start over
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-------------------- Modals ------------------------->
+        <!----------------------------------------------------->
+        <!-- Add Character Modal -->
+        <div id="addCharacterModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 class="modal-title">Add new character</h3>
+                <div class="modal-form-section">
+                    <label class="modal-form-label"
+                        >Asset (3D glb fromat):</label
+                    >
+                    <div class="asset-grid" id="assetGrid">
+                        <div
+                            class="asset-option selected"
+                            data-asset="default-1"
+                        >
+                            <img src="/assets/default-1.jpg" alt="Default 1" />
+                            <div class="asset-label">Dummy 1</div>
+                        </div>
+                        <div class="asset-option" data-asset="default-2">
+                            <img src="/assets/default-2.jpg" alt="Default 2" />
+                            <div class="asset-label">Dummy 2</div>
+                        </div>
+                        <div
+                            class="asset-option"
+                            data-asset="custom"
+                            onclick="triggerCustomAssetUpload()"
+                        >
+                            <div class="asset-custom-upload">
+                                <img
+                                    src="/assets/upload.jpg"
+                                    alt="Upload Custom Asset"
+                                />
+                            </div>
+                            <div class="asset-label">Upload</div>
+                        </div>
+                    </div>
+                    <input
+                        type="file"
+                        id="customAssetInput"
+                        accept=".glb,.gltf"
+                        style="display: none"
+                        onchange="handleCustomAssetUpload(this)"
+                    />
+                </div>
+
+                <div class="modal-buttons">
+                    <button
+                        onclick="closeAddCharacterModal()"
+                        class="app-button app-button-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onclick="addCharacterFromModal()"
+                        class="app-button app-button-save"
+                    >
+                        Add Character
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Modal -->
+        <div id="errorModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 class="modal-title">Error</h3>
+                <div id="errorModalMessage" class="modal-message">
+                    <!-- Error message will be populated here -->
+                </div>
+                <div class="modal-buttons">
+                    <button
+                        onclick="closeErrorModal()"
+                        class="app-button app-button-save"
+                    >
+                        Got it
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteConfirmModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 class="modal-title">Delete Character</h3>
+                <div id="deleteConfirmText" class="modal-message">
+                    Are you sure you want to delete this character?
+                </div>
+                <div class="modal-buttons">
+                    <button
+                        id="cancelDeleteBtn"
+                        class="app-button app-button-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        id="confirmDeleteBtn"
+                        class="app-button app-button-delete"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Character Modal -->
+        <div id="editCharacterModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 class="modal-title">Edit Character</h3>
+
+                <div class="modal-form-section" style="display: none">
+                    <label class="modal-form-label">Character Name:</label>
+                    <input
+                        type="text"
+                        id="editModalCharacterName"
+                        placeholder="Enter character name (letters, numbers, spaces only, max 20 chars)..."
+                        maxlength="20"
+                        oninput="validateEditCharacterName(this.value)"
+                        class="character-name-input"
+                    />
+                    <div id="editNameError" class="name-error"></div>
+                </div>
+
+                <div class="modal-form-section">
+                    <label class="modal-form-label">Character Height:</label>
+                    <div class="height-control-container">
+                        <div class="height-display-row">
+                            <span class="height-label">30%</span>
+                            <div
+                                id="characterHeightDisplay"
+                                class="height-display"
+                            >
+                                100%
+                            </div>
+                            <span class="height-label">200%</span>
+                        </div>
+                        <input
+                            type="range"
+                            id="heightSlider"
+                            class="height-slider"
+                            min="30"
+                            max="200"
+                            step="5"
+                            value="100"
+                        />
+                    </div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button
+                        onclick="saveCharacterEdits()"
+                        class="app-button app-button-save"
+                    >
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Confirmation Modal -->
+        <div id="resetModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 class="modal-title">Warning</h3>
+                <div class="modal-message">
+                    This will reset the entire scene and generated shots.
+                    <br /><br />
+                    Are you sure you want to start over?
+                </div>
+                <div class="modal-buttons">
+                    <button
+                        id="cancelReset"
+                        class="app-button app-button-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        id="confirmReset"
+                        class="app-button app-button-delete"
+                    >
+                        Reset everything
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regenerate Warning Modal -->
+        <div id="regenerateWarningModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 class="modal-title">Warning</h3>
+                <div class="modal-message">
+                    All shots will be lost.
+                    <br /><br />
+                    Do you want to continue?
+                </div>
+                <div class="modal-buttons">
+                    <button
+                        id="cancelRegenerate"
+                        class="app-button app-button-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        id="confirmRegenerate"
+                        class="app-button app-button-delete"
+                    >
+                        Regenerate shot
+                    </button>
+                </div>
+            </div>
+        </div>
+        <script src="shot.js"></script>
+        <script src="ai.js"></script>
+    </body>
+</html>
