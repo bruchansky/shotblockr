@@ -4,7 +4,7 @@
 
 ## 🎬 Overview
 
-Shotblockr is an early-stage prototype built with the Flux Kontext[max] API. It explores how 3D tools and AI can work together to streamline the storyboarding process for animated films.
+Shotblockr is a prototype built with the Flux Kontext[max] API. It explores how 3D tools and AI can work together to streamline the storyboarding process for animated films.
 
 - **3D Scene Builder** – Upload and position custom 3D character models (GLB/GLTF)
 - **AI Image Generation** – Generate scenes from reference images using AI
